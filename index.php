@@ -10,11 +10,41 @@
       $info = @getimagesize($tmp);
       
       if (preg_match('{image/(.*)}is', $info['mime'], $p)) {
-          
+        $image = imagecreatefromjpeg($tmp);
 
-        $name = "$imgDir/".time().".".$p[1];
+        $sx =  imagesx($image);
+        $sy =  imagesy($image);
+
+        $width  = 500;
+        $height = 400;
+
+        $imageTrue = imagecreatetruecolor($width, $height);
+
+        $a = $sx / $width;
+        $b = $sy / $height;
+
+        $zoom;
+
+        if ($a >= $b) {
+          $zoom = $a;
+        } else {
+          $zoom = $b;
+        }
+
+        $sxTrue = $sx / $zoom;        
+        $syTrue = $sy / $zoom;
+
+        $paddingX = 0;
+        $paddingY = 0;
+
+        if ($sxTrue <= $syTrue) {
+          $paddingX = ($width - $sxTrue) / 2;
+        }else {
+          $paddingY = ($height - $syTrue) / 2;
+        }
         
-        move_uploaded_file($tmp, $name);
+        imagecopyresized($imageTrue, $image, $paddingX, $paddingY, 0, 0, $sxTrue,  $syTrue, $sx, $sy);
+        imagejpeg($imageTrue, "$imgDir/".time()."foto.jpg");
       } else {
         echo "<h2>Попытка добавить файл недопустимого формата!</h2>";
       }
