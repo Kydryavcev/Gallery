@@ -1,96 +1,61 @@
 <?php
-  $imgDir = "img";    
-  @mkdir($imgDir, 0777);  
-  
-  if (@$_REQUEST['doUpload']) {
-    $data = $_FILES['file'];
-    $tmp = $data['tmp_name'];
-    
-    if (is_uploaded_file($tmp)) {
-      $info = @getimagesize($tmp);
-      
-      if (preg_match('{image/(.*)}is', $info['mime'], $p)) {
-        $image = imagecreatefromjpeg($tmp);
+require_once 'vendor/liv/ChangeImage.php';
+use vendor\liv\ChangeImage\ChangeImage;
 
-        $sx =  imagesx($image);
-        $sy =  imagesy($image);
+$imgDir = "img"; # name directory  
+$errors = array();
 
-        $width  = 500;
-        $height = 400;
+@mkdir($imgDir, 0777); # creation of a directory in its absence
 
-        $imageTrue = imagecreatetruecolor($width, $height);
+# uploading a file to the directory
+if (@$_REQUEST['doUpload']) {
+  $data = $_FILES['file'];
+  $tmp = $data['tmp_name'];
 
-        $a = $sx / $width;
-        $b = $sy / $height;
+  if (is_uploaded_file($tmp)) {
+  $info = @getimagesize($tmp);
+  $img = new SplFileInfo($info['mime']);
+  echo $img;
 
-        $zoom;
+    if (preg_match('{image/(.*)}is', $info['mime'], $p)) {
 
-        if ($a >= $b) {
-          $zoom = $a;
-        } else {
-          $zoom = $b;
-        }
+      $download = new ChangeImage;
 
-        $sxTrue = $sx / $zoom;        
-        $syTrue = $sy / $zoom;
-
-        $paddingX = 0;
-        $paddingY = 0;
-
-        if ($sxTrue <= $syTrue) {
-          $paddingX = ($width - $sxTrue) / 2;
-        }else {
-          $paddingY = ($height - $syTrue) / 2;
-        }
-        
-        imagecopyresized($imageTrue, $image, $paddingX, $paddingY, 0, 0, $sxTrue,  $syTrue, $sx, $sy);
-        imagejpeg($imageTrue, "$imgDir/".time()."foto.jpg");
-      } else {
-        echo "<h2>Попытка добавить файл недопустимого формата!</h2>";
+      # check type of photo and create image
+      if ($img == 'image/jpeg') {
+        $download->downloadJpeg($tmp, $imgDir);
+      }elseif ($img == 'image/png') {
+        $download->downloadPng($tmp, $imgDir);
+      }elseif ($img == 'image/gif') {
+        $download->downloadGif($tmp, $imgDir);
+      }else {
+        $errors[] = "<h2>Данный тип изображений не поддерживается!</h2>";
       }
-    } else {
-      echo "<h2>Ошибка закачки #{$data['error']}!</h2>";
-    }
-  }
-  
-  $photos = array();
-  foreach (glob("$imgDir/*") as $path) {
-    $sz = getimagesize($path); 
-    $tm = filemtime($path);    
-    
-    $photos[$tm] = [
-      'time' => $tm,              
-      'name' => basename($path),  
-      'url'  => $path,            
-      'w'    => $sz[0],           
-      'h'    => $sz[1],           
-      'wh'   => $sz[3]            
-    ];
-  }
-  
 
+    } else {
+      $errors[] = "<h2>Попытка добавить файл недопустимого формата!</h2>";
+    }
+  } else {
+    $errors[] = "<h2>Ошибка закачки #{$data['error']}!</h2>";
+  }
+}
   
-  krsort($photos);
+$photos = array();
+foreach (glob("$imgDir/*") as $path) {
+  $sz = getimagesize($path); 
+  $tm = filemtime($path);    
   
+  $photos[$tm] = [
+    'time' => $tm,              
+    'name' => basename($path),  
+    'url'  => $path,            
+    'w'    => $sz[0],           
+    'h'    => $sz[1],           
+    'wh'   => $sz[3]            
+  ];
+}
+  
+krsort($photos);  
+  
+require_once 'view.php';
 ?>
-<!DOCTYPE html>
-<html lang='ru'>
-<head>
-  <title>Простейший фотоальбом с возможностью закачки</title>
-  <meta charset='utf-8'>
-</head>
-<body>
-<form action="<?=$_SERVER['SCRIPT_NAME']?>" method="POST" enctype="multipart/form-data">
-<input type="file" name="file"><br>
-<input type="submit" name="doUpload" value="Закачать новую фотографию">
-<hr>
-</form>
-<?php foreach($photos as $n=>$img) {?>
-  <p><img 
-   src="<?=$img['url']?>"
-   <?=$img['wh']?> 
-   alt="Добавлена <?=date("d.m.Y H:i:s", $img['time'])?>"
-  >
-<?php } ?>
-</body>
-</html>

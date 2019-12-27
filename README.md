@@ -1,0 +1,1 @@
+The project was created for editing and uploading photos to an album.
