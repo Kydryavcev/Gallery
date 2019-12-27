@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang='ru'>
 <head>
-  <title>Простейший фотоальбом с возможностью закачки</title>
+  <title>Фотоальбом</title>
   <meta charset='utf-8'>
 </head>
 <body>
